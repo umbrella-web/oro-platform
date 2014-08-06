@@ -13,17 +13,40 @@ use FOS\RestBundle\Controller\Annotations\Get;
 use FOS\Rest\Util\Codes;
 
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
+use Oro\Bundle\SoapBundle\Form\Handler\ApiFormHandler;
 
 use Oro\Bundle\EntityBundle\Provider\EntityProvider;
 use Oro\Bundle\EntityBundle\Exception\InvalidEntityException;
 use Oro\Bundle\EntityBundle\Provider\EntityWithFieldsProvider;
+use Oro\Bundle\SoapBundle\Controller\Api\Rest\RestController;
 
 /**
  * @RouteResource("entity")
  * @NamePrefix("oro_api_")
  */
-class EntityController extends FOSRestController implements ClassResourceInterface
+class EntityController extends RestController implements ClassResourceInterface
 {
+    /**
+     * The property is needed to access entity class name in all controller methods
+     * @var string
+     */
+    protected $className;
+    
+    /**
+     * @var \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager 
+     */
+    protected $entityManager;
+    
+    /**
+     * @var \Symfony\Component\Form\FormInterface 
+     */
+    protected $form;
+    
+    /**
+     * @var \Oro\Bundle\EntityBundle\Form\Handler\CustomEntityApiHandler 
+     */
+    protected $formHandler;
+    
     /**
      * Get entities.
      *
@@ -96,5 +119,88 @@ class EntityController extends FOSRestController implements ClassResourceInterfa
         }
 
         return $this->handleView($this->view($result, $statusCode));
+    }
+    
+    /**
+     * REST GET entity data by entity class name & id
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Entity id
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @ApiDoc(
+     *      description="Get entity data",
+     *      resource=true,
+     *      requirements={
+     *          {"name"="id", "dataType"="integer"},
+     *      }
+     * )
+     */
+    public function getRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        
+        try {
+            return $this->handleGetRequest($id);
+        } catch (InvalidEntityException $ex) {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+    
+    /**
+     * REST POST Create new entity record
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @ApiDoc(
+     *      description="Create new entity record",
+     *      resource=true
+     * )
+     */
+    public function postRecordAction($entityName)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        
+        return $this->handleCreateRequest();
+    }
+    
+    /**
+     * @return ApiFormHandler
+     */
+    public function getFormHandler()
+    {
+        if(!$this->formHandler)
+            $this->formHandler = new \Oro\Bundle\EntityBundle\Form\Handler\CustomEntityApiHandler($this->getForm(), $this->getRequest(), $this->getDoctrine()->getManager()); 
+        
+        return $this->formHandler;
+    }
+    
+    /**
+     * @return \Symfony\Component\Form\FormInterface 
+     */
+    public function getForm()
+    {
+        if(!$this->form)
+            $this->form = $this->createForm(new \Oro\Bundle\EntityBundle\Form\Type\CustomEntityApiType(), null, array(
+                'data_class' => $this->className,
+                'config_manager' => $this->get('oro_entity_config.config_manager'),
+                ));
+
+        return $this->form;
+    }
+    
+    /**
+     * Get entity Manager
+     *
+     * @return \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager
+     */
+    public function getManager()
+    {
+        if(!class_exists($this->className))
+            throw new InvalidEntityException(sprintf('The "%s" entity was not found.', $this->className));
+        
+        if(!$this->entityManager)
+            $this->entityManager = new \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager($this->className, $this->getDoctrine()->getManager());
+        
+        return $this->entityManager;
     }
 }
