@@ -1,6 +1,7 @@
 {% extends 'OroUIBundle:actions:update.html.twig' %}
 {% form_theme form with ['OroFormBundle:Form:fields.html.twig', 'OroEntityConfigBundle:Include:fields.html.twig'] %}
 
+
 {% oro_title_set({params : {
     "%entityName%": (entity_config.get('label')|trans)|default('N/A'),
     "%fieldName%": (field_config.get('label')|trans)|default('N/A')|trans,
@@ -18,6 +19,24 @@
         {% set html = UI.saveAndCloseButton() %}
         {% set html = html ~ UI.saveAndStayButton() %}
         {{ UI.dropdownSaveButton({'html': html}) }}
+    {% endif %}
+    {% if state is defined %}
+        {% if state in ['New', 'Requires update', 'Active'] %}
+            {{ UI.customDeleteButton({
+            'path': 'javascript:void(0);',
+            'title': 'Delete field'|trans,
+            'label': 'Delete'|trans,
+            'dataId': field.id
+            }) }}
+        {% endif %}
+        {% if state == 'Deleted' %}
+            {{ UI.customRestoreButton({
+            'path': 'javascript:void(0);',
+            'title': 'Restore field'|trans,
+            'label': 'Restore'|trans,
+            'dataId': field.id
+            }) }} 
+        {% endif %}
     {% endif %}
 {% endblock navButtons %}
 

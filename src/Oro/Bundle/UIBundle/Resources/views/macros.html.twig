@@ -312,6 +312,89 @@
 {% endmacro %}
 
 {#
+    Create 'Delete' button
+    Parameters - array:
+        [
+            'aCss'  - additional button class
+            'title' - button title
+            'label' - button label
+            'url'   - path for js handler
+        ]
+#}
+{% macro customDeleteButton(parameters) %}
+    {% set aCss = ['edit-button', 'main-group'] %}
+    {% if parameters.aCss is defined %}
+        {% set aCss = parameters.aCss|split(' ')|merge(aCss) %}
+    {% endif %}
+    {% if parameters.title is defined %}
+        {% set title = parameters.title %}
+    {% else %}
+        {% set title = parameters.entity_label is defined
+        ? 'oro.ui.edit_entity'|trans({'%entityName%': parameters.entity_label})
+        : 'oro.ui.edit'|trans
+        %}
+    {% endif %}
+    {% if parameters.dataId is defined %}
+        {% set url = url('oro_entityextend_field_remove')~'/'~parameters.dataId %}
+    {% else %}
+        {% set url = 'unknownID' %}
+    {% endif %}
+    {% set label = parameters.label is defined
+    ? parameters.label
+    : 'oro.ui.edit'|trans
+    %}
+    {% set parameters = parameters|merge({
+    'aCss': aCss|join(' btn-danger custom-button-delete-field '),
+    'title': title,
+    'label': label,
+    'id': url,
+
+    }) %}
+    {{ _self.button(parameters) }}
+{% endmacro %}
+
+{#
+    Create 'Restore' button
+    Parameters - array:
+        [
+            'aCss'  - additional button class
+            'title' - button title
+            'label' - button label
+            'url'   - path for js handler
+        ]
+#}
+{% macro customRestoreButton(parameters) %}
+    {% set aCss = ['edit-button', 'main-group'] %}
+    {% if parameters.aCss is defined %}
+        {% set aCss = parameters.aCss|split(' ')|merge(aCss) %}
+    {% endif %}
+    {% if parameters.title is defined %}
+        {% set title = parameters.title %}
+    {% else %}
+        {% set title = parameters.entity_label is defined
+        ? 'oro.ui.edit_entity'|trans({'%entityName%': parameters.entity_label})
+        : 'oro.ui.edit'|trans
+        %}
+    {% endif %}
+    {% if parameters.dataId is defined %}
+        {% set url = url('oro_entityextend_field_unremove')~'/'~parameters.dataId %}
+    {% else %}
+        {% set url = 'unknownID' %}
+    {% endif %}
+    {% set label = parameters.label is defined
+    ? parameters.label
+    : 'oro.ui.edit'|trans
+    %}
+    {% set parameters = parameters|merge({
+    'aCss': aCss|join(' btn-primary custom-button-restore-field '),
+    'title': title,
+    'label': label,
+    'id': url,
+    }) %}
+    {{ _self.button(parameters) }}
+{% endmacro %}
+
+{#
     Create 'add' button
     Parameters - array:
         [

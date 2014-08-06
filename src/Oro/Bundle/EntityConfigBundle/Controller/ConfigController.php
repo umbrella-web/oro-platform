@@ -185,8 +185,14 @@ class ConfigController extends Controller
     {
         /** @var FieldConfigModel $field */
         $field   = $this->getDoctrine()->getRepository(FieldConfigModel::ENTITY_NAME)->find($id);
-        $request = $this->getRequest();
+        /* get state of field, for display correct button on page, delete or restore field */
+        $className = $field->getEntity()->getClassName();
+        $configManager = $this->get('oro_entity_config.config_manager');
+        $extendConfigProvider = $configManager->getProvider('extend');
+        $fieldConfig = $extendConfigProvider->getConfig($className, $field->getFieldName());
+        $state = $fieldConfig->get('state');
 
+        $request = $this->getRequest();
         $form = $this->createForm(
             'oro_entity_config_type',
             null,
@@ -223,6 +229,7 @@ class ConfigController extends Controller
         );
 
         return [
+            'state'         => $state,
             'entity_config' => $entityConfig,
             'field_config'  => $fieldConfig,
             'field'         => $field,
