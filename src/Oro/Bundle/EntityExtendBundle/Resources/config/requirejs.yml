@@ -2,3 +2,5 @@ config:
     paths:
         'oroentityextend/js/init-entity-extend-apply': 'bundles/oroentityextend/js/init-entity-extend-apply.js'
         'oroentityextend/js/init-entity-extend-relation': 'bundles/oroentityextend/js/init-entity-extend-relation.js'
+        'oroentityextend/js/delete-restore-field': 'bundles/oroentityextend/js/delete-restore-field.js'
+
