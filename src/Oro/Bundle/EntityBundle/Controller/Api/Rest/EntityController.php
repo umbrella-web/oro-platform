@@ -159,10 +159,16 @@ class EntityController extends RestController implements ClassResourceInterface
     public function postRecordAction($entityName)
     {
         $this->className = str_replace('_', '\\', $entityName);
-        
-        return $this->handleCreateRequest();
+        try
+        {
+            return $this->handleCreateRequest();
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
     }
-    
+
     /**
      * REST DELETE entity record
      *
