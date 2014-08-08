@@ -164,6 +164,31 @@ class EntityController extends RestController implements ClassResourceInterface
     }
     
     /**
+     * REST DELETE entity record
+     *
+     * @param string $entityName Custom entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Custom entity record id
+     *
+     * @ApiDoc(
+     *      description="Delete custom entity record",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function deleteRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        try
+        {
+            return $this->handleDeleteRequest($id);
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+
+    /**
      * @return ApiFormHandler
      */
     public function getFormHandler()
