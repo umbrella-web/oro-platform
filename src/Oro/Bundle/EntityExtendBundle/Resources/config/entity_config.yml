@@ -1,7 +1,7 @@
 oro_entity_config:
     extend:
         entity:
-            require_js:                     ['oroentityextend/js/init-entity-extend-apply', 'oroentityextend/js/init-entity-extend-relation']
+            require_js:                     ['oroentityextend/js/init-entity-extend-apply', 'oroentityextend/js/init-entity-extend-relation', 'oroentityextend/js/delete-restore-field']
             grid_action:
                 -
                     name:                   'Remove'
