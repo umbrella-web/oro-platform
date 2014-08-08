@@ -13,17 +13,40 @@ use FOS\RestBundle\Controller\Annotations\Get;
 use FOS\Rest\Util\Codes;
 
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
+use Oro\Bundle\SoapBundle\Form\Handler\ApiFormHandler;
 
 use Oro\Bundle\EntityBundle\Provider\EntityProvider;
 use Oro\Bundle\EntityBundle\Exception\InvalidEntityException;
 use Oro\Bundle\EntityBundle\Provider\EntityWithFieldsProvider;
+use Oro\Bundle\SoapBundle\Controller\Api\Rest\RestController;
 
 /**
  * @RouteResource("entity")
  * @NamePrefix("oro_api_")
  */
-class EntityController extends FOSRestController implements ClassResourceInterface
+class EntityController extends RestController implements ClassResourceInterface
 {
+    /**
+     * The property is needed to access entity class name in all controller methods
+     * @var string
+     */
+    protected $className;
+    
+    /**
+     * @var \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager 
+     */
+    protected $entityManager;
+    
+    /**
+     * @var \Symfony\Component\Form\FormInterface 
+     */
+    protected $form;
+    
+    /**
+     * @var \Oro\Bundle\EntityBundle\Form\Handler\CustomEntityApiHandler 
+     */
+    protected $formHandler;
+    
     /**
      * Get entities.
      *
@@ -35,7 +58,7 @@ class EntityController extends FOSRestController implements ClassResourceInterfa
      *      description="Get entities",
      *      resource=true
      * )
-     *
+     * 
      * @return Response
      */
     public function cgetAction()
@@ -96,5 +119,233 @@ class EntityController extends FOSRestController implements ClassResourceInterfa
         }
 
         return $this->handleView($this->view($result, $statusCode));
+    }
+    
+    /**
+     * REST GET list of custom entity records
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     *
+     * @QueryParam(
+     *      name="page",
+     *      requirements="\d+",
+     *      nullable=true,
+     *      description="Page number, starting from 1. Defaults to 1."
+     * )
+     * @QueryParam(
+     *      name="limit",
+     *      requirements="\d+",
+     *      nullable=true,
+     *      description="Number of items per page. defaults to 10."
+     * )
+     * @ApiDoc(
+     *      description="Get list of custom entity records",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function cgetRecordsAction($entityName)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+
+        if (! $this->get('oro_security.security_facade')->isGranted('VIEW', 'entity:' . $this->className))
+                throw $this->createAccessDeniedException();
+        
+        $page = (int) $this->getRequest()->get('page', 1);
+        $limit = (int) $this->getRequest()->get('limit', self::ITEMS_PER_PAGE);
+
+        try
+        {
+            return $this->handleGetListRequest($page, $limit);
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+    
+    /**
+     * REST GET entity data by entity class name & id
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Entity id
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @ApiDoc(
+     *      description="Get entity data",
+     *      resource=true,
+     *      requirements={
+     *          {"name"="id", "dataType"="integer"},
+     *      }
+     * )
+     */
+    public function getRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        
+        try {
+            return $this->handleGetRequest($id);
+        } catch (InvalidEntityException $ex) {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+    
+    /**
+     * REST POST Create new entity record
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * 
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @ApiDoc(
+     *      description="Create new entity record",
+     *      resource=true
+     * )
+     */
+    public function postRecordAction($entityName)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        
+        if (! $this->get('oro_security.security_facade')->isGranted('CREATE', 'entity:' . $this->className))
+                throw $this->createAccessDeniedException();
+        
+        try
+        {
+            return $this->handleCreateRequest();
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+    
+    /**
+     * REST PUT Update custom entity record
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Entity record id
+     *
+     * @ApiDoc(
+     *      description="Update custom entity record",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function putRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        return $this->handleUpdateRequest($id);
+    }
+    
+    /**
+     * REST DELETE entity record
+     *
+     * @param string $entityName Custom entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Custom entity record id
+     *
+     * @ApiDoc(
+     *      description="Delete custom entity record",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function deleteRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        try
+        {
+            return $this->handleDeleteRequest($id);
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+
+    /**
+     * @return ApiFormHandler
+     */
+    public function getFormHandler()
+    {
+        if(!$this->formHandler)
+            $this->formHandler = new \Oro\Bundle\EntityBundle\Form\Handler\CustomEntityApiHandler($this->getForm(), $this->getRequest(), $this->getDoctrine()->getManager()); 
+        
+        return $this->formHandler;
+    }
+    
+    /**
+     * @return \Symfony\Component\Form\FormInterface 
+     */
+    public function getForm()
+    {
+        if(!$this->form)
+            $this->form = $this->createForm(new \Oro\Bundle\EntityBundle\Form\Type\CustomEntityApiType(), null, array(
+                'data_class' => $this->className,
+                'config_manager' => $this->get('oro_entity_config.config_manager'),
+                ));
+
+        return $this->form;
+    }
+    
+    /**
+     * Get entity Manager
+     *
+     * @return \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager
+     */
+    public function getManager()
+    {
+        if(!class_exists($this->className))
+            throw new InvalidEntityException(sprintf('The "%s" entity was not found.', $this->className));
+        
+        if(!$this->entityManager)
+            $this->entityManager = new \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager($this->className, $this->getDoctrine()->getManager());
+        
+        return $this->entityManager;
+    }
+    
+    public function createAccessDeniedException($message = null)
+    {
+        return new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException($message);
+    }
+    
+    /**
+     * Note: have to override the method to add user permissions check
+     * @inheritDoc
+     */
+    public function handleGetRequest($id)
+    {
+        $item = $this->getManager()->find($id);
+
+        if (! $this->get('oro_security.security_facade')->isGranted('VIEW', $item))
+                throw $this->createAccessDeniedException();
+        
+        if ($item) {
+            $item = $this->getPreparedItem($item);
+        }
+        $responseData = $item ? json_encode($item) : '';
+
+        return new Response($responseData, $item ? Codes::HTTP_OK : Codes::HTTP_NOT_FOUND);
+    }
+    
+    /**
+     * Note: have to override the method to add user permissions check
+     * @inheritDoc
+     */
+    public function handleUpdateRequest($id)
+    {
+        $entity = $this->getManager()->find($id);
+        if (!$entity) {
+            return $this->handleView($this->view(null, Codes::HTTP_NOT_FOUND));
+        }
+        
+        if (! $this->get('oro_security.security_facade')->isGranted('EDIT', $entity))
+                throw $this->createAccessDeniedException();
+
+        if ($this->processForm($entity)) {
+            $view = $this->view(null, Codes::HTTP_NO_CONTENT);
+        } else {
+            $view = $this->view($this->getForm(), Codes::HTTP_BAD_REQUEST);
+        }
+
+        return $this->handleView($view);
     }
 }
