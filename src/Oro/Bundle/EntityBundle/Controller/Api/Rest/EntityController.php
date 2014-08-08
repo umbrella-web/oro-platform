@@ -219,6 +219,24 @@ class EntityController extends RestController implements ClassResourceInterface
     }
     
     /**
+     * REST PUT Update custom entity record
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * @param int $id Entity record id
+     *
+     * @ApiDoc(
+     *      description="Update custom entity record",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function putRecordAction($entityName, $id)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+        return $this->handleUpdateRequest($id);
+    }
+    
+    /**
      * REST DELETE entity record
      *
      * @param string $entityName Custom entity full class name; backslashes (\) should be replaced with underscore (_).
@@ -306,5 +324,28 @@ class EntityController extends RestController implements ClassResourceInterface
         $responseData = $item ? json_encode($item) : '';
 
         return new Response($responseData, $item ? Codes::HTTP_OK : Codes::HTTP_NOT_FOUND);
+    }
+    
+    /**
+     * Note: have to override the method to add user permissions check
+     * @inheritDoc
+     */
+    public function handleUpdateRequest($id)
+    {
+        $entity = $this->getManager()->find($id);
+        if (!$entity) {
+            return $this->handleView($this->view(null, Codes::HTTP_NOT_FOUND));
+        }
+        
+        if (! $this->get('oro_security.security_facade')->isGranted('EDIT', $entity))
+                throw $this->createAccessDeniedException();
+
+        if ($this->processForm($entity)) {
+            $view = $this->view(null, Codes::HTTP_NO_CONTENT);
+        } else {
+            $view = $this->view($this->getForm(), Codes::HTTP_BAD_REQUEST);
+        }
+
+        return $this->handleView($view);
     }
 }
