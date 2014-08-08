@@ -122,6 +122,46 @@ class EntityController extends RestController implements ClassResourceInterface
     }
     
     /**
+     * REST GET list of custom entity records
+     *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     *
+     * @QueryParam(
+     *      name="page",
+     *      requirements="\d+",
+     *      nullable=true,
+     *      description="Page number, starting from 1. Defaults to 1."
+     * )
+     * @QueryParam(
+     *      name="limit",
+     *      requirements="\d+",
+     *      nullable=true,
+     *      description="Number of items per page. defaults to 10."
+     * )
+     * @ApiDoc(
+     *      description="Get list of custom entity records",
+     *      resource=true
+     * )
+     * @return Response
+     */
+    public function cgetRecordsAction($entityName)
+    {
+        $this->className = str_replace('_', '\\', $entityName);
+
+        $page = (int) $this->getRequest()->get('page', 1);
+        $limit = (int) $this->getRequest()->get('limit', self::ITEMS_PER_PAGE);
+
+        try
+        {
+            return $this->handleGetListRequest($page, $limit);
+        }
+        catch (InvalidEntityException $ex)
+        {
+            return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
+        }
+    }
+    
+    /**
      * REST GET entity data by entity class name & id
      *
      * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
