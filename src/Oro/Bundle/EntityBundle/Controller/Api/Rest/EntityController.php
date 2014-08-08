@@ -58,7 +58,7 @@ class EntityController extends RestController implements ClassResourceInterface
      *      description="Get entities",
      *      resource=true
      * )
-     *
+     * 
      * @return Response
      */
     public function cgetAction()
@@ -148,6 +148,9 @@ class EntityController extends RestController implements ClassResourceInterface
     {
         $this->className = str_replace('_', '\\', $entityName);
 
+        if (! $this->get('oro_security.security_facade')->isGranted('VIEW', 'entity:' . $this->className))
+                throw $this->createAccessDeniedException();
+        
         $page = (int) $this->getRequest()->get('page', 1);
         $limit = (int) $this->getRequest()->get('limit', self::ITEMS_PER_PAGE);
 
@@ -190,6 +193,8 @@ class EntityController extends RestController implements ClassResourceInterface
     /**
      * REST POST Create new entity record
      *
+     * @param string $entityName Entity full class name; backslashes (\) should be replaced with underscore (_).
+     * 
      * @return \Symfony\Component\HttpFoundation\Response
      * @ApiDoc(
      *      description="Create new entity record",
@@ -199,6 +204,10 @@ class EntityController extends RestController implements ClassResourceInterface
     public function postRecordAction($entityName)
     {
         $this->className = str_replace('_', '\\', $entityName);
+        
+        if (! $this->get('oro_security.security_facade')->isGranted('CREATE', 'entity:' . $this->className))
+                throw $this->createAccessDeniedException();
+        
         try
         {
             return $this->handleCreateRequest();
@@ -208,7 +217,7 @@ class EntityController extends RestController implements ClassResourceInterface
             return $this->handleView($this->view(array('message' => $ex->getMessage()), Codes::HTTP_NOT_FOUND));
         }
     }
-
+    
     /**
      * REST DELETE entity record
      *
@@ -273,5 +282,29 @@ class EntityController extends RestController implements ClassResourceInterface
             $this->entityManager = new \Oro\Bundle\SoapBundle\Entity\Manager\ApiEntityManager($this->className, $this->getDoctrine()->getManager());
         
         return $this->entityManager;
+    }
+    
+    public function createAccessDeniedException($message = null)
+    {
+        return new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException($message);
+    }
+    
+    /**
+     * Note: have to override the method to add user permissions check
+     * @inheritDoc
+     */
+    public function handleGetRequest($id)
+    {
+        $item = $this->getManager()->find($id);
+
+        if (! $this->get('oro_security.security_facade')->isGranted('VIEW', $item))
+                throw $this->createAccessDeniedException();
+        
+        if ($item) {
+            $item = $this->getPreparedItem($item);
+        }
+        $responseData = $item ? json_encode($item) : '';
+
+        return new Response($responseData, $item ? Codes::HTTP_OK : Codes::HTTP_NOT_FOUND);
     }
 }
