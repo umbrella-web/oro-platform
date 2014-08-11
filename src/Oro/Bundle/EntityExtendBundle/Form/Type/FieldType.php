@@ -30,6 +30,7 @@ class FieldType extends AbstractType
             'boolean',
             'decimal',
             'date',
+            'datetime',
             'text',
             'float',
             'money',

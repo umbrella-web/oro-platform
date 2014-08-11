@@ -16,6 +16,7 @@ oro:
                 boolean:            Boolean
                 decimal:            Decimal
                 date:               Date
+                datetime:           DateTime
                 text:               Text
                 float:              Float
                 money:              Currency
