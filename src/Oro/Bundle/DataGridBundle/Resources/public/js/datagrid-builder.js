@@ -15,8 +15,7 @@ define(function (require) {
     var mapCellModuleName = require('./map-cell-module-name');
     var gridContentManager = require('./content-manager');
 
-    var gridSelector = '[data-type="datagrid"]:not([data-rendered])',
-        gridGridViewsSelector = '.page-title > .navbar-extra .span9:last',
+    var gridGridViewsSelector = '.page-title > .navbar-extra .span9:last',
 
         helpers = {
             cellType: function (type) {
@@ -33,24 +32,28 @@ define(function (require) {
              * Builder interface implementation
              *
              * @param {jQuery.Deferred} deferred
-             * @param {jQuery} $el
-             * @param {String} gridName
+             * @param {Object} options
+             * @param {jQuery} [options.$el] container for the grid
+             * @param {string} [options.gridName] grid name
+             * @param {Object} [options.gridPromise] grid builder's promise
+             * @param {Object} [options.data] data for grid's collection
+             * @param {Object} [options.metadata] configuration for the grid
              */
-            init: function (deferred, $el, gridName) {
+            init: function (deferred, options) {
                 var self = {
                     deferred: deferred,
-                    $el: $el,
-                    gridName: gridName,
+                    $el: options.$el,
+                    gridName: options.gridName,
+                    data: options.data,
+                    metadata: _.defaults(options.metadata, {
+                        columns: [],
+                        options: {},
+                        state: {},
+                        rowActions: {},
+                        massActions: {}
+                    }),
                     modules: {}
                 };
-
-                self.metadata = _.extend({
-                    columns: [],
-                    options: {},
-                    state: {},
-                    rowActions: {},
-                    massActions: {}
-                }, self.$el.data('metadata'));
 
                 gridBuilder.collectModules.call(self);
 
@@ -92,19 +95,15 @@ define(function (require) {
                 if (!collection) {
                     // otherwise, create collection from metadata
                     collectionOptions = gridBuilder.combineCollectionOptions.call(this);
-                    collection = new PageableCollection(this.$el.data('data'), collectionOptions);
+                    collection = new PageableCollection(this.data, collectionOptions);
                 }
-
-                mediator.trigger('datagrid_collection_set_after', collection, this.$el);
 
                 // create grid
                 options = gridBuilder.combineGridOptions.call(this);
                 mediator.trigger('datagrid_create_before', options, collection);
                 grid = new Grid(_.extend({collection: collection}, options));
-                mediator.trigger('datagrid_create_after', grid);
                 this.grid = grid;
                 this.$el.append(grid.render().$el);
-                this.$el.data('datagrid', grid);
                 mediator.trigger('datagrid:rendered');
 
                 if (options.routerEnabled !== false) {
@@ -112,11 +111,7 @@ define(function (require) {
                     gridContentManager.trace(collection);
                 }
 
-                // create grid view
-                options = gridBuilder.combineGridViewsOptions.call(this);
-                $(gridGridViewsSelector).append((new GridViewsView(_.extend({collection: collection}, options))).render().$el);
-
-                this.deferred.resolve();
+                this.deferred.resolve(grid);
             },
 
             /**
@@ -186,6 +181,50 @@ define(function (require) {
                     exportOptions: metadata.options.export || {},
                     routerEnabled: _.isUndefined(metadata.options.routerEnabled) ? true : metadata.options.routerEnabled
                 };
+            }
+        },
+
+        gridViewsBuilder = {
+            /**
+             * Runs grid views builder
+             * Builder interface implementation
+             *
+             * @param {jQuery.Deferred} deferred
+             * @param {Object} options
+             * @param {jQuery} [options.$el] container for the grid
+             * @param {string} [options.gridName] grid name
+             * @param {Object} [options.gridPromise] grid builder's promise
+             * @param {Object} [options.data] data for grid's collection
+             * @param {Object} [options.metadata] configuration for the grid
+             */
+            init: function (deferred, options) {
+                var self = {
+                    metadata: _.defaults(options.metadata, {
+                        gridViews: {}
+                    })
+                };
+
+                options.gridPromise.done(function (grid) {
+                    var gridViews = gridViewsBuilder.build.call(self, grid.collection);
+                    deferred.resolve(gridViews);
+                }).fail(function () {
+                    deferred.reject();
+                });
+            },
+
+            /**
+             * Creates grid view
+             *
+             * @param {orodatagrid.PageableCollection} collection
+             * @returns {orodatagrid.datagrid.GridViewsView}
+             */
+            build: function (collection) {
+                var options, gridViews;
+                options = gridViewsBuilder.combineGridViewsOptions.call(this);
+                gridViews = new GridViewsView(_.extend({collection: collection}, options));
+                $(gridGridViewsSelector).append(gridViews.render().$el);
+
+                return gridViews;
             },
 
             /**
@@ -194,10 +233,25 @@ define(function (require) {
              * @returns {Object}
              */
             combineGridViewsOptions: function () {
-                return this.metadata.gridViews || {};
+                return this.metadata.gridViews;
             }
         };
 
+
+    /**
+     * Runs passed builder
+     *
+     * @param {jQuery.Deferred} deferred
+     * @param {Object} options
+     * @param {Object} builder
+     */
+    function runBuilder(deferred, options, builder) {
+        if (!_.has(builder, 'init') || !$.isFunction(builder.init)) {
+            deferred.reject();
+            throw new TypeError('Builder does not have init method');
+        }
+        _.defer(_.bind(builder.init, builder), deferred, options);
+    }
 
     /**
      * Process datagrid's metadata and creates datagrid
@@ -208,42 +262,34 @@ define(function (require) {
      * @param {array} builders
      * @param {string} selector
      */
-    return function (builders, selector) {
-        var $el = $(selector).filter(gridSelector);
+    return function (options) {
+        var deferred, promises;
 
-        builders.push(gridBuilder);
+        options.$el = $(document.createDocumentFragment());
+        options.gridName = options.metadata.options.gridName;
 
-        $el.each(function (i, el) {
-            var $el, gridName, fragment, promises;
+        // run grid builders
+        deferred = $.Deferred();
+        options.gridPromise = deferred.promise();
+        promises = [options.gridPromise];
+        runBuilder(deferred, options, gridBuilder);
 
-            $el = $(el);
-            gridName = (($el.data('metadata') || {}).options || {}).gridName;
-            if (!gridName) {
-                return;
-            }
+        // run gridViews builder
+        deferred = $.Deferred();
+        promises.push(deferred.promise());
+        runBuilder(deferred, options, gridViewsBuilder);
 
-            var $placeHolder = $('<div/>');
-            $el.before($placeHolder);
-            fragment = document.createDocumentFragment();
-            fragment.appendChild($el[0]);
-            promises = [];
-
-            _.each(builders, function (builder) {
-                var deferred;
-                if (!_.has(builder, 'init') || !$.isFunction(builder.init)) {
-                    throw new TypeError('Builder does not have init method');
-                }
-                deferred = $.Deferred();
-                setTimeout(function () {
-                    builder.init(deferred, $el, gridName);
-                }, 0);
-                promises.push(deferred.promise());
-            });
-
-            $.when.apply($, promises).done(function () {
-                $el.attr('data-rendered', true);
-                $placeHolder.replaceWith($el);
-            });
+        // run other builders
+        _.each(options.builders, function (module) {
+            var deferred = $.Deferred();
+            promises.push(deferred.promise());
+            require([module], _.partial(runBuilder, deferred, options));
         });
+
+        $.when.apply($, promises).always(function () {
+            $(options.el).html(options.$el.children());
+        });
+
+        return promises;
     };
 });
