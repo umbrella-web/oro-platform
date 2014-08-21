@@ -19,7 +19,7 @@ define(['underscore'], function (_) {
         fields = _.filter(fields, function (item) {
             var result;
             result = !_.some(exclude, function (rule) {
-                var result;
+                var result, cut;
                 // exclude can be a property name
                 if (_.isString(rule)) {
                     result = _.intersection(
@@ -28,7 +28,7 @@ define(['underscore'], function (_) {
                     ).length > 0;
                 } else {
                     // or exclude can be an object with data to compare
-                    var cut = _.pick(item, _.keys(rule));
+                    cut = _.pick(item, _.keys(rule));
                     result  = _.isEqual(cut, rule);
                 }
 
@@ -85,20 +85,20 @@ define(['underscore'], function (_) {
             }];
 
             if (!path) {
-                return chain;
+                return this.entity ? chain : [];
             }
 
-            $.each(path.split('+'), function (i, item) {
-                var filedName, entityName, pos;
+            _.each(path.split('+'), function (item, i) {
+                var fieldName, entityName, pos;
 
                 if (i === 0) {
                     // first item is always just a field name
-                    filedName = item;
+                    fieldName = item;
                 } else {
                     pos = item.indexOf('::');
                     if (pos !== -1) {
                         entityName = item.slice(0, pos);
-                        filedName = item.slice(pos + 2);
+                        fieldName = item.slice(pos + 2);
                     } else {
                         entityName = item;
                     }
@@ -109,10 +109,10 @@ define(['underscore'], function (_) {
                     chain[i].entity = data[entityName];
                 }
 
-                if (filedName) {
+                if (fieldName) {
                     item = {
                         // take field from entity of previous chain part
-                        field: chain[i].entity.fieldsIndex[filedName]
+                        field: chain[i].entity.fieldsIndex[fieldName]
                     };
                     chain.push(item);
                     item.path = self.entityChainToPath(chain);
@@ -164,7 +164,7 @@ define(['underscore'], function (_) {
             var path;
             end = end || chain.length;
 
-            chain = $.map(chain.slice(1, end), function (item) {
+            chain = _.map(chain.slice(1, end), function (item) {
                 var result = item.field.name;
                 if (item.entity) {
                     result += '+' + item.entity.name;
@@ -185,12 +185,13 @@ define(['underscore'], function (_) {
          * @returns {Object}
          */
         getApplicableConditions: function (fieldId) {
+            var chain, result;
             if (!fieldId) {
                 return {};
             }
 
-            var chain = this.pathToEntityChain(fieldId);
-            var result = {
+            chain = this.pathToEntityChain(fieldId);
+            result = {
                 parent_entity: null,
                 entity: chain[chain.length - 1].field.entity.name,
                 field:  chain[chain.length - 1].field.name
@@ -206,7 +207,7 @@ define(['underscore'], function (_) {
         /**
          * Converts Field Path to Property Path
          *
-         * Filed Path:
+         * Field Path:
          *      account+OroCRM\[...]\Account::contacts+OroCRM\[...]\Contact::firstName
          * Returns Property Path:
          *      account.contacts.firstName
@@ -214,10 +215,9 @@ define(['underscore'], function (_) {
          * @param {string} path
          * @returns {string}
          */
-        getPropertyPathByPath: function(path)
-        {
+        getPropertyPathByPath: function (path) {
             var propertyPathParts = [];
-            $.each(path.split('+'), function (i, item) {
+            _.each(path.split('+'), function (item, i) {
                 var part;
                 if (i === 0) {
                     // first item is always just a field name
@@ -241,26 +241,28 @@ define(['underscore'], function (_) {
          *
          * Property Path:
          *      account.contacts.firstName
-         * Returns Filed Path:
+         * Returns Field Path:
          *      account+OroCRM\[...]\Account::contacts+OroCRM\[...]\Contact::firstName
          *
          * @param {string} pathData
          * @returns {string}
          */
-        getPathByPropertyPath: function(pathData) {
+        getPathByPropertyPath: function (pathData) {
+            var entityData, fieldIdParts;
             if (!_.isArray(pathData)) {
                 pathData = pathData.split('.');
             }
 
-            var entityData = this.data[this.entity];
-            var fieldIdParts = $.map(pathData.slice(0, pathData.length - 1), function (fieldName) {
-                var fieldPartId = fieldName;
-
-                var fieldsData = null;
+            entityData = this.data[this.entity];
+            fieldIdParts = _.map(pathData.slice(0, pathData.length - 1), function (fieldName) {
+                var fieldPartId, fieldsData;
+                fieldPartId = fieldName;
+                fieldsData = null;
                 if (entityData.hasOwnProperty('fieldsIndex')) {
                     fieldsData = entityData.fieldsIndex;
-                } else if (entityData.hasOwnProperty('related_entity')
-                    && entityData.related_entity.hasOwnProperty('fieldsIndex')
+                } else if (
+                    entityData.hasOwnProperty('related_entity') &&
+                        entityData.related_entity.hasOwnProperty('fieldsIndex')
                 ) {
                     fieldsData = entityData.related_entity.fieldsIndex;
                 }

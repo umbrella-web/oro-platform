@@ -47,7 +47,7 @@ abstract class AbstractTableDataConverter extends DefaultDataConverter
      */
     public function convertToImportFormat(array $importedRecord, $skipNullValues = true)
     {
-        $plainDataWithFrontendHeader = $skipNullValues ? $this->removeEmptyColumns($importedRecord) : $importedRecord;
+        $plainDataWithFrontendHeader = $this->removeEmptyColumns($importedRecord, $skipNullValues);
 
         $frontendHeader = array_keys($plainDataWithFrontendHeader);
         $frontendToBackendHeader = $this->convertHeaderToBackend($frontendHeader);
@@ -56,8 +56,9 @@ abstract class AbstractTableDataConverter extends DefaultDataConverter
             $plainDataWithFrontendHeader
         );
         $complexDataWithBackendHeader = parent::convertToImportFormat($plainDataWithBackendHeader, $skipNullValues);
+        $filteredComplexDataWithBackendHeader = $this->filterEmptyArrays($complexDataWithBackendHeader);
 
-        return $complexDataWithBackendHeader;
+        return $filteredComplexDataWithBackendHeader;
     }
 
     /**
@@ -86,17 +87,32 @@ abstract class AbstractTableDataConverter extends DefaultDataConverter
 
     /**
      * @param array $data
+     * @param bool $skipNullValues
      * @return array
      */
-    protected function removeEmptyColumns(array $data)
+    protected function removeEmptyColumns(array $data, $skipNullValues)
     {
-        foreach ($data as $key => $value) {
-            if ($value === null || $value === '') {
-                unset($data[$key]);
-            }
-        }
+        $data = array_map(
+            function ($value) {
+                if ($value === '') {
+                    return null;
+                }
 
-        return $data;
+                return $value;
+            },
+            $data
+        );
+
+        return array_filter(
+            $data,
+            function ($value) use ($skipNullValues) {
+                if (is_null($value) && $skipNullValues) {
+                    return false;
+                }
+
+                return true;
+            }
+        );
     }
 
     /**
@@ -226,6 +242,32 @@ abstract class AbstractTableDataConverter extends DefaultDataConverter
         }
 
         return $resultData;
+    }
+
+    /**
+     * Remove all empty arrays and arrays with only null values
+     *
+     * @param array $data
+     * @return array|null
+     */
+    protected function filterEmptyArrays(array $data)
+    {
+        $hasValue = false;
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $value = $this->filterEmptyArrays($value);
+                $data[$key] = $value;
+            }
+
+            if (array() === $value) {
+                unset($data[$key]);
+            } elseif (null !== $value) {
+                $hasValue = true;
+            }
+        }
+
+        return $hasValue ? $data : array();
     }
 
     /**

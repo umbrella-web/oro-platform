@@ -5,7 +5,7 @@ datagrid:
             type: orm
             query:
                 select:
-                    - e
+                    - partial e.{id, subject, sentAt}
                 from:
                     - { table: OroEmailBundle:Email, alias: e }
 
@@ -65,7 +65,7 @@ datagrid:
             type: orm
             query:
                 select:
-                    - e
+                    - partial e.{id, subject, receivedAt, sentAt}
                 from:
                     - { table: OroEmailBundle:Email, alias: e }
                 join:
@@ -192,11 +192,12 @@ datagrid:
                 entityName:
                     type:      choice
                     data_name: t.entityName
+                    null_value: _empty_
                     options:
                         is_translated_choices: true
                         field_options:
                             multiple:       true
-                            choices:        @oro_entity.datagrid_helper->getEntityNames
+                            choices:        @oro_email.emailtemplate.datagrid_helper->getEntityNames
                 name:
                     type:      string
                     data_name: t.name
