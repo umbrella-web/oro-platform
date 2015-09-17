@@ -101,6 +101,7 @@ oro:
                 field:
                     grid_action:
                         remove: "Remove"
+                        remove_completely: "Remove completely"
                         restore: "Restore"
                     layout_action:
                         manage_unique_keys: "Manage unique keys"

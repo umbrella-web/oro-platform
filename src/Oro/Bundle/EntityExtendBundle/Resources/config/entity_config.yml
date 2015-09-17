@@ -136,6 +136,13 @@ oro_entity_config:
                     icon:                   'backward'
                     filter:                 { extend_owner: 'Custom', extend_state: ['Deleted'] }
                     args:                   ['id']
+                -
+                    name:                   oro.entity_extend.entity_config.extend.field.grid_action.remove_completely
+                    route:                  'oro_entityextend_field_remove_completely'
+                    type:                   'ajax'
+                    icon:                   'trash'
+                    filter:                 { extend_owner: 'Custom', extend_state: ['Deleted'] }
+                    args:                   ['id']
             layout_action:
                 -
                     name:                   oro.entity_extend.entity_config.extend.field.layout_action.manage_unique_keys
@@ -265,10 +272,10 @@ oro_entity_config:
                     grid:
                         type:               boolean
                         label:              oro.entity_extend.entity_config.extend.field.items.is_deleted
-                        renderable:         false
+                        renderable:         true
                         query:
                             operator:       '!='
-                            value:          true
+                            value:          false
 
                 origin:
                     options:
