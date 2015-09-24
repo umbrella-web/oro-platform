@@ -132,7 +132,7 @@ oro_entity_config:
                 -
                     name:                   oro.entity_extend.entity_config.extend.field.grid_action.restore
                     route:                  'oro_entityextend_field_unremove'
-                    type:                   'ajax'
+                    type:                   'ajaxrestorefield'
                     icon:                   'backward'
                     filter:                 { extend_owner: 'Custom', extend_state: ['Deleted'] }
                     args:                   ['id']

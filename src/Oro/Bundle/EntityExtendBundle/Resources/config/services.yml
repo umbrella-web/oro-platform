@@ -36,6 +36,7 @@ parameters:
     oro_entity_extend.twig.extension.enum.class:              Oro\Bundle\EntityExtendBundle\Twig\EnumExtension
     oro_entity_extend.datagrid.column_options_guesser.class:  Oro\Bundle\EntityExtendBundle\Grid\ExtendColumnOptionsGuesser
     oro_entity_extend.datagrid.action.type.ajaxdeletefield.class:  Oro\Bundle\EntityExtendBundle\Grid\Action\AjaxDeleteFieldAction
+    oro_entity_extend.datagrid.action.type.ajaxrestorefield.class: Oro\Bundle\EntityExtendBundle\Grid\Action\AjaxRestoreFieldAction
     oro_entity_extend.validation_loader.class:                Oro\Bundle\EntityExtendBundle\Validator\ExtendFieldValidationLoader
     oro_entity_extend.listener.extend_field_value_render.class:  Oro\Bundle\EntityExtendBundle\EventListener\ExtendFieldValueRenderListener
     oro_entity_extend.importexport.normalizer.enum.class:     Oro\Bundle\EntityExtendBundle\ImportExport\Serializer\EnumNormalizer
@@ -315,6 +316,12 @@ services:
         scope: prototype
         tags:
             - { name: oro_datagrid.extension.action.type, type: ajaxdeletefield }
+
+    oro_entity_extend.datagrid.action.type.ajaxrestorefield:
+        class: %oro_entity_extend.datagrid.action.type.ajaxrestorefield.class%
+        scope: prototype
+        tags:
+            - { name: oro_datagrid.extension.action.type, type: ajaxrestorefield }
 
     oro_entity_extend.validation_loader:
         class: %oro_entity_extend.validation_loader.class%
