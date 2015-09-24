@@ -42,7 +42,7 @@ class SaveSchemaTool extends SchemaTool
         // enable super save mode
         foreach ($schemaDiff->changedTables as $table) {
             // does not matter how they were created, extend mechanism does not allow column/association deletion
-            $table->removedColumns = $table->removedForeignKeys = [];
+//            $table->removedColumns = $table->removedForeignKeys = [];
             $table->removedIndexes = array_filter(
                 $table->removedIndexes,
                 function ($idx) {

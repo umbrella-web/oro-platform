@@ -263,19 +263,19 @@ class ConfigFieldGridController extends Controller
 
     /**
      * @Route(
-     *      "/remove_completely/{id}",
-     *      name="oro_entityextend_field_remove_completely",
+     *      "/erase/{id}",
+     *      name="oro_entityextend_field_erase",
      *      requirements={"id"="\d+"},
      *      defaults={"id"=0}
      * )
      * Acl(
-     *      id="oro_entityextend_field_remove_completely",
-     *      label="oro.entity_extend.action.config_field_grid.remove_completely",
+     *      id="oro_entityextend_field_erase",
+     *      label="oro.entity_extend.action.config_field_grid.erase",
      *      type="action",
      *      group_name=""
      * )
      */
-    public function removeCompletelyAction(FieldConfigModel $field)
+    public function eraseAction(FieldConfigModel $field)
     {
         if (!$field) {
             throw $this->createNotFoundException('Unable to find FieldConfigModel entity.');
@@ -292,7 +292,7 @@ class ConfigFieldGridController extends Controller
             return new Response('', Codes::HTTP_FORBIDDEN);
         }
 
-        $fieldConfig->set('state', ExtendScope::STATE_DELETE_COMPLETELY);
+        $fieldConfig->set('state', ExtendScope::STATE_ERASE);
         $configManager->persist($fieldConfig);
 
         $fields = $extendConfigProvider->filter(
@@ -317,10 +317,10 @@ class ConfigFieldGridController extends Controller
 
         $this->get('session')->getFlashBag()->add(
             'success',
-            $this->get('translator')->trans('Field successfully deleted completely')
+            $this->get('translator')->trans('Field successfully erased')
         );
 
-        return new JsonResponse(['message' => 'Field successfully deleted completely', 'successful' => true], Codes::HTTP_OK);
+        return new JsonResponse(['message' => 'Field successfully erased', 'successful' => true], Codes::HTTP_OK);
     }
 
     /**

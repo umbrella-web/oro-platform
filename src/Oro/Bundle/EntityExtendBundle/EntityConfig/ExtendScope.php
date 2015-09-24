@@ -25,7 +25,7 @@ class ExtendScope
      */
     const STATE_DELETE = 'Deleted';
 
-    const STATE_DELETE_COMPLETELY = 'Deleted completely';
+    const STATE_ERASE = 'Erased';
 
     /**
      * An entity or field properties and database schema, Doctrine's metadata and proxies are up-to-date.

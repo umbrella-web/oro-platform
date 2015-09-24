@@ -10,4 +10,5 @@ oro:
         schema_updated: Schema updated
         schema_update_failed: Schema update failed
         delete_field.confirm_content: Are you sure you want to delete this field?
+        erase_field.confirm_content: Are you sure you want to erase this field (data cannot be restored)?
         restore_field.confirm_content: Are you sure you want to restore this field?

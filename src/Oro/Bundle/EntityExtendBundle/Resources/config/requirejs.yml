@@ -3,5 +3,7 @@ config:
         'oroentityextend/js/init-entity-extend-apply': 'bundles/oroentityextend/js/init-entity-extend-apply.js'
         'oroentityextend/js/init-entity-extend-relation': 'bundles/oroentityextend/js/init-entity-extend-relation.js'
         'oro/datagrid/action/ajaxdeletefield-action': 'bundles/oroentityextend/js/datagrid/action/ajaxdeletefield-action.js'
+        'oro/datagrid/action/ajaxerasefield-action': 'bundles/oroentityextend/js/datagrid/action/ajaxerasefield-action.js'
         'oro/datagrid/action/ajaxrestorefield-action': 'bundles/oroentityextend/js/datagrid/action/ajaxrestorefield-action.js'
+        'oroui/js/erase-confirmation': 'bundles/oroentityextend/js/erase-confirmation.js'
         'oroui/js/restore-confirmation': 'bundles/oroentityextend/js/restore-confirmation.js'

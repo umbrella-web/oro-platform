@@ -112,6 +112,13 @@ class EntityConfigModel extends AbstractConfigModel
         return $this;
     }
 
+    public function removeField($field)
+    {
+        $this->fields->removeElement($field);
+
+        return $this;
+    }
+
     /**
      * @param  callable $filter function (FieldConfigModel $model)
      * @return ArrayCollection|FieldConfigModel[]

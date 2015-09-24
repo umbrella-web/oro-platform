@@ -130,18 +130,18 @@ oro_entity_config:
                     filter:                 { extend_owner: 'Custom', mode: 'default', extend_state: ['New', 'Requires update', 'Active'] }
                     args:                   ['id']
                 -
+                    name:                   oro.entity_extend.entity_config.extend.field.grid_action.erase
+                    route:                  'oro_entityextend_field_erase'
+                    type:                   'ajaxerasefield'
+                    icon:                   'trash'
+                    filter:                 { extend_owner: 'Custom', extend_state: ['New', 'Requires update', 'Active', 'Deleted'] }
+                    args:                   ['id']
+                -
                     name:                   oro.entity_extend.entity_config.extend.field.grid_action.restore
                     route:                  'oro_entityextend_field_unremove'
                     type:                   'ajaxrestorefield'
                     icon:                   'backward'
-                    filter:                 { extend_owner: 'Custom', extend_state: ['Deleted'] }
-                    args:                   ['id']
-                -
-                    name:                   oro.entity_extend.entity_config.extend.field.grid_action.remove_completely
-                    route:                  'oro_entityextend_field_remove_completely'
-                    type:                   'ajax'
-                    icon:                   'trash'
-                    filter:                 { extend_owner: 'Custom', extend_state: ['Deleted'] }
+                    filter:                 { extend_owner: 'Custom', extend_state: ['Deleted', 'Erased'] }
                     args:                   ['id']
             layout_action:
                 -

@@ -376,16 +376,24 @@ class ExtendConfigDumper
             true
         );
         foreach ($fieldConfigs as $fieldConfig) {
-            $this->checkFields(
-                $entityName,
-                $fieldConfig,
-                $relationProperties,
-                $defaultProperties,
-                $properties,
-                $doctrine
-            );
+            if ($fieldConfig->is('state', ExtendScope::STATE_ERASE)) {
+                $fieldConfigId = $fieldConfig->getId();
 
-            $this->configProvider->persist($fieldConfig);
+                $this->configProvider->getConfigManager()->deleteConfigFieldModel(
+                        $fieldConfigId->getClassName(), $fieldConfigId->getFieldName());
+            }
+            else {
+                $this->checkFields(
+                        $entityName,
+                        $fieldConfig,
+                        $relationProperties,
+                        $defaultProperties,
+                        $properties,
+                        $doctrine
+                );
+
+                $this->configProvider->persist($fieldConfig);
+            }
         }
 
         $relations = $extendConfig->get('relation', false, []);
@@ -472,6 +480,7 @@ class ExtendConfigDumper
             $hasNotActiveFields = false;
             foreach ($fieldConfigs as $fieldConfig) {
                 if (!$fieldConfig->is('state', ExtendScope::STATE_DELETE)
+                    && !$fieldConfig->is('state', ExtendScope::STATE_ERASE)
                     && !$fieldConfig->is('state', ExtendScope::STATE_ACTIVE)
                 ) {
                     $hasNotActiveFields = true;
@@ -479,7 +488,7 @@ class ExtendConfigDumper
                 }
             }
 
-            // Set entity state to active if all fields are active or deleted
+            // Set entity state to active if all fields are active or deleted/erased
             if (!$hasNotActiveFields) {
                 $extendConfig->set('state', ExtendScope::STATE_ACTIVE);
                 $this->configProvider->persist($extendConfig);

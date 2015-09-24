@@ -249,6 +249,33 @@ class ConfigCache
     }
 
     /**
+     * Delete a flag indicating whether an entity or entity field is configurable or not.
+     *
+     * @param string      $className
+     * @param string|null $fieldName
+     * @param bool        $localCacheOnly
+     *
+     * @return boolean TRUE if the entry was successfully stored in the cache; otherwise, FALSE.
+     */
+    public function deleteConfigurable($className, $fieldName = null, $localCacheOnly = false)
+    {
+        $cacheEntry = isset($this->localModelCache[$className])
+            ? $this->localModelCache[$className]
+            : $this->fetchConfigurable($className);
+
+        if ($fieldName) {
+            unset($cacheEntry[self::FIELDS_KEY][$fieldName]);
+        } else {
+            unset($cacheEntry[self::FLAG_KEY]);
+        }
+        $this->localModelCache[$className] = $cacheEntry;
+
+        return $localCacheOnly
+            ? true
+            : $this->modelCache->save($className, $cacheEntry);
+    }
+
+    /**
      * Deletes cached "configurable" flags for all configs.
      *
      * @return bool TRUE if the cache entries were successfully deleted; otherwise, FALSE.

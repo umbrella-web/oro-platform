@@ -438,6 +438,29 @@ class ConfigModelManager
     }
 
     /**
+     * @param string $className
+     * @param string $fieldName
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function removeFieldModel($className, $fieldName)
+    {
+        if (empty($className)) {
+            throw new \InvalidArgumentException('$className must not be empty');
+        }
+        if (empty($fieldName)) {
+            throw new \InvalidArgumentException('$fieldName must not be empty');
+        }
+
+        $entityModel = $this->getEntityModel($className);
+        $fieldModel = $this->getFieldModel($className, $fieldName);
+
+        $entityModel->removeField($fieldModel);
+
+        unset($this->fields[$className][$fieldName]);
+    }
+
+    /**
      * Removes all cached data
      */
     public function clearCache()

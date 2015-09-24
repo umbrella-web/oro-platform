@@ -760,6 +760,40 @@ class ConfigManager
     }
 
     /**
+     * @param $className
+     * @param $fieldName
+     */
+    public function deleteConfigFieldModel($className, $fieldName)
+    {
+        $fieldModel = $this->modelManager->findFieldModel($className, $fieldName);
+
+        if ($fieldModel === null)
+            return;
+
+
+        $this->cache->deleteFieldConfig($className, $fieldName);
+        $this->cache->deleteConfigurable($className, $fieldName);
+
+        $em = $this->getEntityManager();
+        $em->remove($fieldModel);
+
+        $this->modelManager->removeFieldModel($className, $fieldName);
+
+        foreach ($this->getProviders() as $provider) {
+            $configId = new FieldConfigId($provider->getScope(), $className, $fieldName,
+                    //todo: Hack: we use the fact that buildConfigKey() does not use mode
+                    ConfigModelManager::MODE_DEFAULT);
+
+            unset($this->originalConfigs[$this->buildConfigKey($configId)]);
+        }
+
+        $this->eventDispatcher->dispatch(
+            Events::DELETE_FIELD_CONFIG,
+            new FieldConfigEvent($className, $fieldName, $this)
+        );
+    }
+
+    /**
      * @param string $className
      * @param bool   $force - if TRUE overwrite existing value from annotation
      *

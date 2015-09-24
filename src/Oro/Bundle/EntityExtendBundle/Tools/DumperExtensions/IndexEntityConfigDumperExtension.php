@@ -32,7 +32,8 @@ class IndexEntityConfigDumperExtension extends AbstractEntityConfigDumperExtensi
      */
     public function supports($actionType)
     {
-        if ($actionType === ExtendConfigDumper::ACTION_PRE_UPDATE) {
+        // Hook post-update to handle orphan indices after erasing fields
+        if ($actionType === ExtendConfigDumper::ACTION_POST_UPDATE) {
             return true;
         }
 
@@ -42,7 +43,7 @@ class IndexEntityConfigDumperExtension extends AbstractEntityConfigDumperExtensi
     /**
      * {@inheritdoc}
      */
-    public function preUpdate()
+    public function postUpdate()
     {
         $targetEntityConfigs = $this->configManager->getProvider('extend')->getConfigs();
         foreach ($targetEntityConfigs as $targetEntityConfig) {
@@ -70,6 +71,7 @@ class IndexEntityConfigDumperExtension extends AbstractEntityConfigDumperExtensi
      */
     protected function updateIndices(array &$indices, $targetEntityClass)
     {
+        $usedIndices  = [];
         $hasChanges   = false;
         $fieldConfigs = $this->configManager->getProvider('extend')->getConfigs($targetEntityClass);
         foreach ($fieldConfigs as $fieldConfig) {
@@ -82,14 +84,22 @@ class IndexEntityConfigDumperExtension extends AbstractEntityConfigDumperExtensi
                     if (!isset($indices[$fieldName]) || !$indices[$fieldName]) {
                         // TODO: need to be changed to fieldName => columnName
                         // TODO: should be done in scope https://magecore.atlassian.net/browse/BAP-3940
-                        $indices[$fieldName] = true;
-                        $hasChanges          = true;
+                        $indices[$fieldName]     = true;
+                        $usedIndices[$fieldName] = true;
+                        $hasChanges = true;
                     }
                 } elseif (isset($indices[$fieldName]) || array_key_exists($fieldName, $indices)) {
                     unset($indices[$fieldName]);
                     $hasChanges = true;
                 }
             }
+        }
+
+        // Delete orphan indices, which arise after erasing fields
+        $orphanIndices = array_diff_key($indices, $usedIndices);
+        if ($orphanIndices) {
+            $indices = array_diff_key($indices, $orphanIndices);
+            $hasChanges = true;
         }
 
         return $hasChanges;
